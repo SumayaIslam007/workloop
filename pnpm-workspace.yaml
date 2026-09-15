@@ -1,0 +1,8 @@
+packages:
+  - 'services/*'
+  - 'apps/*'
+  - 'packages/*'
+# Install scripts are blocked by default. These ship prebuilt binaries, so their scripts aren't needed.
+allowBuilds:
+  '@parcel/watcher': false
+  unrs-resolver: false

@@ -1,0 +1,26 @@
+{
+  "name": "workloop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Field-service work-order marketplace: companies post jobs, technicians accept them, completed work generates invoices asynchronously.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.5.1",
+    "eslint": "^10.10.0",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.0"
+  }
+}

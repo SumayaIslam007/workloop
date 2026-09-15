@@ -1,0 +1,25 @@
+{
+  "name": "@workloop/shared-types",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Domain types and rules shared by the API, web and mobile apps.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.5.1",
+    "jest": "^30.5.1",
+    "ts-jest": "^29.4.12",
+    "typescript": "^6.0.3"
+  }
+}
