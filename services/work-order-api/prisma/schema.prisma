@@ -1,0 +1,149 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+  // Extensionless relative imports, so plain `tsc` output runs on Node as CommonJS
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// Values must stay in sync with UserRole in @workloop/shared-types
+// (checked at compile time in src/common/domain-sync.ts).
+enum Role {
+  buyer
+  technician
+  admin
+}
+
+// Values must stay in sync with WorkOrderStatus in @workloop/shared-types.
+enum WorkOrderStatus {
+  DRAFT
+  PUBLISHED
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  APPROVED
+  CANCELLED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Char(36)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  name         String   @db.VarChar(120)
+  role         Role
+  companyId    String?  @map("company_id") @db.Char(36)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  company             Company?       @relation("CompanyMembers", fields: [companyId], references: [id], onDelete: SetNull)
+  ownedCompany        Company?       @relation("CompanyOwner")
+  createdWorkOrders   WorkOrder[]    @relation("WorkOrderCreator")
+  assignedWorkOrders  WorkOrder[]    @relation("WorkOrderTechnician")
+  applications        Application[]
+  refreshTokens       RefreshToken[]
+
+  @@index([companyId])
+  @@map("users")
+}
+
+model Company {
+  id          String   @id @default(uuid()) @db.Char(36)
+  name        String   @db.VarChar(160)
+  ownerUserId String   @unique @map("owner_user_id") @db.Char(36)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  owner      User        @relation("CompanyOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  members    User[]      @relation("CompanyMembers")
+  workOrders WorkOrder[]
+
+  @@map("companies")
+}
+
+model WorkOrder {
+  id           String          @id @default(uuid()) @db.Char(36)
+  companyId    String          @map("company_id") @db.Char(36)
+  createdById  String          @map("created_by_id") @db.Char(36)
+  title        String          @db.VarChar(160)
+  description  String          @db.Text
+  location     String          @db.VarChar(255)
+  payRate      Decimal         @map("pay_rate") @db.Decimal(10, 2)
+  status       WorkOrderStatus @default(DRAFT)
+  technicianId String?         @map("technician_id") @db.Char(36)
+  scheduledAt  DateTime?       @map("scheduled_at")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  createdBy    User          @relation("WorkOrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  technician   User?         @relation("WorkOrderTechnician", fields: [technicianId], references: [id], onDelete: SetNull)
+  applications Application[]
+
+  // Browsing published orders newest-first
+  @@index([status, createdAt])
+  // A company's own orders, filtered by status
+  @@index([companyId, status])
+  // A technician's assigned orders, filtered by status
+  @@index([technicianId, status])
+  @@map("work_orders")
+}
+
+model Application {
+  id           String            @id @default(uuid()) @db.Char(36)
+  workOrderId  String            @map("work_order_id") @db.Char(36)
+  technicianId String            @map("technician_id") @db.Char(36)
+  status       ApplicationStatus @default(PENDING)
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  workOrder  WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  technician User      @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+
+  // A technician can apply to a work order only once
+  @@unique([workOrderId, technicianId])
+  @@index([technicianId, status])
+  @@map("applications")
+}
+
+// Transactional outbox: rows are written in the same transaction as the state change
+// and published to RabbitMQ by a separate poller.
+model OutboxEvent {
+  id            String    @id @default(uuid()) @db.Char(36)
+  aggregateType String    @map("aggregate_type") @db.VarChar(60)
+  aggregateId   String    @map("aggregate_id") @db.Char(36)
+  type          String    @db.VarChar(100)
+  payload       Json
+  createdAt     DateTime  @default(now()) @map("created_at")
+  publishedAt   DateTime? @map("published_at")
+
+  // The poller reads unpublished events in creation order
+  @@index([publishedAt, createdAt])
+  @@map("outbox_events")
+}
+
+// Opaque refresh tokens, stored only as SHA-256 hashes. Rotated on every use;
+// presenting an already-rotated token revokes all of the user's sessions.
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Char(36)
+  userId    String    @map("user_id") @db.Char(36)
+  tokenHash String    @unique @map("token_hash") @db.Char(64)
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}

@@ -2,7 +2,16 @@ packages:
   - 'services/*'
   - 'apps/*'
   - 'packages/*'
-# Install scripts are blocked by default. These ship prebuilt binaries, so their scripts aren't needed.
+# Install scripts are blocked by default; only allow the ones that are needed.
 allowBuilds:
+  # Downloads the Prisma migration engine
+  '@prisma/engines': true
+  prisma: true
+  # Verifies the platform binary (used by tsx)
+  esbuild: true
+  # These ship prebuilt binaries, so their scripts aren't needed
   '@parcel/watcher': false
+  argon2: false
   unrs-resolver: false
+  # Usage telemetry bundled with swagger-ui
+  '@scarf/scarf': false

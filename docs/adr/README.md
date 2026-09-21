@@ -10,3 +10,5 @@ Short records of significant decisions: the context, what was chosen, and what i
 | [0004](0004-prisma-over-typeorm.md)             | Prisma as the ORM for the NestJS API                           | Accepted |
 | [0005](0005-state-machine-as-pure-function.md)  | Work-order state machine as a pure, shared function            | Accepted |
 | [0006](0006-local-dev-with-managed-services.md) | Develop against managed cloud services instead of local Docker | Accepted |
+| [0007](0007-nestjs-11-not-12.md)                | NestJS 11 rather than 12                                       | Accepted |
+| [0008](0008-opaque-rotating-refresh-tokens.md)  | Opaque, rotating refresh tokens in an httpOnly cookie          | Accepted |
